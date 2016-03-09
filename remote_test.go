@@ -287,3 +287,37 @@ func Test_getRemoteIPAddress_ValidProviderURL_ResponseContentIsValid_IPIsNotNil(
 
 	}
 }
+
+func Test_integration_ipv6(t *testing.T) {
+	remoteIPProvider, _ := NewRemoteIPProvider()
+	ipv6Addresses, err := remoteIPProvider.GetIPv6Addresses()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if len(ipv6Addresses) == 0 {
+		t.Fail()
+		t.Logf("GetIPv6Addresses() did not return an IPv6 address")
+	} else {
+		fmt.Printf("%s\n", ipv6Addresses[0])
+
+	}
+}
+
+func Test_integration_ipv4(t *testing.T) {
+	remoteIPProvider, _ := NewRemoteIPProvider()
+	ipv4Addresses, err := remoteIPProvider.GetIPv4Addresses()
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if len(ipv4Addresses) == 0 {
+		t.Fail()
+		t.Logf("GetIPv4Addresses() did not return an IPv6 address")
+	} else {
+		fmt.Printf("%s\n", ipv4Addresses[0])
+
+	}
+}

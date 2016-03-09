@@ -19,13 +19,13 @@ import (
 func NewRemoteIPProvider() (RemoteIPProvider, error) {
 
 	// remote IPv4 provider
-	ipv4AddressProvider, ipv4ProviderErr := newRemoteAddressProvider("https://ipv4.icanhazip.com")
+	ipv4AddressProvider, ipv4ProviderErr := newRemoteAddressProvider("https://icanhazip.com")
 	if ipv4ProviderErr != nil {
 		return RemoteIPProvider{}, ipv4ProviderErr
 	}
 
 	// remote IPv6 provider
-	ipv6AddressProvider, ipv6ProviderErr := newRemoteAddressProvider("https://ipv6.icanhazip.com")
+	ipv6AddressProvider, ipv6ProviderErr := newRemoteAddressProvider("https://icanhazip.com")
 	if ipv6ProviderErr != nil {
 		return RemoteIPProvider{}, ipv6ProviderErr
 	}
@@ -76,7 +76,7 @@ func (p RemoteIPProvider) GetIPv4Addresses() ([]net.IP, error) {
 func newRemoteAddressProvider(providerURL string) (remoteAddressProvider, error) {
 	return remoteAddressProvider{
 		providerURL: providerURL,
-		timeout:     time.Second * 3,
+		timeout:     time.Second * 10,
 	}, nil
 }
 
@@ -90,8 +90,16 @@ type remoteAddressProvider struct {
 func (r remoteAddressProvider) GetRemoteIPAddress() (net.IP, error) {
 
 	// create a http client (allow insecure SSL certs)
+	dialer := func(network, address string) (net.Conn, error) {
+		dialer := &net.Dialer{
+			Timeout: r.timeout,
+		}
+		return dialer.Dial("tcp4", address)
+	}
+
 	transportConfig := &http.Transport{
 		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		Dial:            dialer,
 	}
 
 	httpClient := &http.Client{
