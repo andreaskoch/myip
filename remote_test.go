@@ -42,7 +42,7 @@ func Test_GetIPv4Address_ProviderReturnsValidIPv4Address_IPReturned_NoErrorIsRet
 	}))
 	remoteIPAddressProviderURL := testServer.URL
 
-	remoteAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+	remoteAddressProvider, _ := newRemoteAddressProvider("tcp4", remoteIPAddressProviderURL)
 
 	// act
 	remoteIPProvider := RemoteIPProvider{ipv4Provider: remoteAddressProvider}
@@ -69,7 +69,7 @@ func Test_GetIPv4Address_ProviderReturnsIPv6Address_NoIPsReturned_ErrorIsReturne
 	}))
 	remoteIPAddressProviderURL := testServer.URL
 
-	remoteAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+	remoteAddressProvider, _ := newRemoteAddressProvider("tcp6", remoteIPAddressProviderURL)
 
 	// act
 	remoteIPProvider := RemoteIPProvider{ipv4Provider: remoteAddressProvider}
@@ -96,7 +96,7 @@ func Test_GetIPv6Address_ProviderReturnsValidIPv6Address_IPsAreReturned_NoErrorI
 	}))
 	remoteIPAddressProviderURL := testServer.URL
 
-	remoteAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+	remoteAddressProvider, _ := newRemoteAddressProvider("tcp", remoteIPAddressProviderURL)
 
 	// act
 	remoteIPProvider := RemoteIPProvider{ipv6Provider: remoteAddressProvider}
@@ -123,7 +123,7 @@ func Test_GetIPv6Address_ProviderReturnsIPv4Address_NoIPsReturned_ErrorIsReturne
 	}))
 	remoteIPAddressProviderURL := testServer.URL
 
-	remoteAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+	remoteAddressProvider, _ := newRemoteAddressProvider("tcp4", remoteIPAddressProviderURL)
 
 	// act
 	remoteIPProvider := RemoteIPProvider{ipv6Provider: remoteAddressProvider}
@@ -153,7 +153,7 @@ func Test_getRemoteIPAddress_ValidProviderURL_IPIsReturned(t *testing.T) {
 	remoteIPAddressProviderURL := testServer.URL
 
 	// act
-	ipAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+	ipAddressProvider, _ := newRemoteAddressProvider("tcp4", remoteIPAddressProviderURL)
 	ip, err := ipAddressProvider.GetRemoteIPAddress()
 
 	// assert
@@ -181,7 +181,7 @@ func Test_getRemoteIPAddress_InvalidProviderURL_RequestTimesOut(t *testing.T) {
 
 	// act
 	startTime := time.Now()
-	ipAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+	ipAddressProvider, _ := newRemoteAddressProvider("tcp4", remoteIPAddressProviderURL)
 	ipAddressProvider.GetRemoteIPAddress()
 	elapsed := time.Since(startTime)
 
@@ -206,7 +206,7 @@ func Test_getRemoteIPAddress_InvalidProviderURL_ErrorIsReturned(t *testing.T) {
 	testServer.Close() // stop the server
 
 	// act
-	ipAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+	ipAddressProvider, _ := newRemoteAddressProvider("tcp4", remoteIPAddressProviderURL)
 	_, err := ipAddressProvider.GetRemoteIPAddress()
 
 	// assert
@@ -239,7 +239,7 @@ func Test_getRemoteIPAddress_ValidProviderURL_ResponseContentIsInvalid_ErrorIsRe
 		remoteIPAddressProviderURL := testServer.URL
 
 		// act
-		ipAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+		ipAddressProvider, _ := newRemoteAddressProvider("tcp", remoteIPAddressProviderURL)
 		_, err := ipAddressProvider.GetRemoteIPAddress()
 
 		// assert
@@ -276,7 +276,7 @@ func Test_getRemoteIPAddress_ValidProviderURL_ResponseContentIsValid_IPIsNotNil(
 		remoteIPAddressProviderURL := testServer.URL
 
 		// act
-		ipAddressProvider, _ := newRemoteAddressProvider(remoteIPAddressProviderURL)
+		ipAddressProvider, _ := newRemoteAddressProvider("tcp", remoteIPAddressProviderURL)
 		ip, _ := ipAddressProvider.GetRemoteIPAddress()
 
 		// assert
@@ -288,36 +288,24 @@ func Test_getRemoteIPAddress_ValidProviderURL_ResponseContentIsValid_IPIsNotNil(
 	}
 }
 
+// IPv6 integration test for NewRemoteIPProvider
 func Test_integration_ipv6(t *testing.T) {
 	remoteIPProvider, _ := NewRemoteIPProvider()
-	ipv6Addresses, err := remoteIPProvider.GetIPv6Addresses()
-
-	if err != nil {
-		fmt.Println(err)
-	}
+	ipv6Addresses, _ := remoteIPProvider.GetIPv6Addresses()
 
 	if len(ipv6Addresses) == 0 {
 		t.Fail()
 		t.Logf("GetIPv6Addresses() did not return an IPv6 address")
-	} else {
-		fmt.Printf("%s\n", ipv6Addresses[0])
-
 	}
 }
 
+// IPv4 integration test for NewRemoteIPProvider
 func Test_integration_ipv4(t *testing.T) {
 	remoteIPProvider, _ := NewRemoteIPProvider()
-	ipv4Addresses, err := remoteIPProvider.GetIPv4Addresses()
-
-	if err != nil {
-		fmt.Println(err)
-	}
+	ipv4Addresses, _ := remoteIPProvider.GetIPv4Addresses()
 
 	if len(ipv4Addresses) == 0 {
 		t.Fail()
-		t.Logf("GetIPv4Addresses() did not return an IPv6 address")
-	} else {
-		fmt.Printf("%s\n", ipv4Addresses[0])
-
+		t.Logf("GetIPv4Addresses() did not return an IPv4 address")
 	}
 }

@@ -19,13 +19,13 @@ import (
 func NewRemoteIPProvider() (RemoteIPProvider, error) {
 
 	// remote IPv4 provider
-	ipv4AddressProvider, ipv4ProviderErr := newRemoteAddressProvider("https://icanhazip.com")
+	ipv4AddressProvider, ipv4ProviderErr := newRemoteIPv4AddressProvider("https://icanhazip.com")
 	if ipv4ProviderErr != nil {
 		return RemoteIPProvider{}, ipv4ProviderErr
 	}
 
 	// remote IPv6 provider
-	ipv6AddressProvider, ipv6ProviderErr := newRemoteAddressProvider("https://icanhazip.com")
+	ipv6AddressProvider, ipv6ProviderErr := newRemoteIPv6AddressProvider("https://icanhazip.com")
 	if ipv6ProviderErr != nil {
 		return RemoteIPProvider{}, ipv6ProviderErr
 	}
@@ -71,10 +71,23 @@ func (p RemoteIPProvider) GetIPv4Addresses() ([]net.IP, error) {
 	return []net.IP{ip}, nil
 }
 
+// newRemoteIPv4AddressProvider creates a new instance of the remoteAddressProvider type
+// with the given provider URL as the data source over IPv4.
+func newRemoteIPv4AddressProvider(providerURL string) (remoteAddressProvider, error) {
+	return newRemoteAddressProvider("tcp4", providerURL)
+}
+
+// newRemoteIPv6AddressProvider creates a new instance of the remoteAddressProvider type
+// with the given provider URL as the data source over IPv4.
+func newRemoteIPv6AddressProvider(providerURL string) (remoteAddressProvider, error) {
+	return newRemoteAddressProvider("tcp6", providerURL)
+}
+
 // newRemoteAddressProvider creates a new instance of the remoteAddressProvider type
-// with the local interfaces as a data source.
-func newRemoteAddressProvider(providerURL string) (remoteAddressProvider, error) {
+// with the given provider URL as the data source over the given network ("tcp", "tcp6", "tcp4")
+func newRemoteAddressProvider(network, providerURL string) (remoteAddressProvider, error) {
 	return remoteAddressProvider{
+		network:     network,
 		providerURL: providerURL,
 		timeout:     time.Second * 10,
 	}, nil
@@ -82,6 +95,7 @@ func newRemoteAddressProvider(providerURL string) (remoteAddressProvider, error)
 
 // remoteAddressProvider provides functions for accessing the IP addresses of network interfaces.
 type remoteAddressProvider struct {
+	network     string
 	providerURL string
 	timeout     time.Duration
 }
@@ -94,7 +108,7 @@ func (r remoteAddressProvider) GetRemoteIPAddress() (net.IP, error) {
 		dialer := &net.Dialer{
 			Timeout: r.timeout,
 		}
-		return dialer.Dial("tcp4", address)
+		return dialer.Dial(r.network, address)
 	}
 
 	transportConfig := &http.Transport{
