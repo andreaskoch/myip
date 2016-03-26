@@ -55,11 +55,7 @@ import (
 func main() {
 
 	// create a new remote IP provider instance
-	remoteIPProvider, ipProviderError := myip.NewRemoteIPProvider()
-	if ipProviderError != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create a new remote IP provider: %s", ipProviderError.Error())
-		os.Exit(1)
-	}
+	remoteIPProvider := myip.NewRemoteIPProvider()
 
 	// get the remote IPv6 addresses
 	remoteIPv6Addresses, remoteIPError := remoteIPProvider.GetIPv6Addresses()
