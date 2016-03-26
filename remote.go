@@ -14,38 +14,36 @@ import (
 	"time"
 )
 
+const timeout = 10
+
 // NewRemoteIPProvider creates a new instance of the
 // RemoteIPProvider type.
-func NewRemoteIPProvider() (RemoteIPProvider, error) {
-
-	// remote IPv4 provider
-	ipv4AddressProvider, ipv4ProviderErr := newRemoteIPv4AddressProvider("https://icanhazip.com")
-	if ipv4ProviderErr != nil {
-		return RemoteIPProvider{}, ipv4ProviderErr
-	}
-
-	// remote IPv6 provider
-	ipv6AddressProvider, ipv6ProviderErr := newRemoteIPv6AddressProvider("https://icanhazip.com")
-	if ipv6ProviderErr != nil {
-		return RemoteIPProvider{}, ipv6ProviderErr
-	}
+func NewRemoteIPProvider() RemoteIPProvider {
 
 	return RemoteIPProvider{
-		ipv4Provider: ipv4AddressProvider,
-		ipv6Provider: ipv6AddressProvider,
-	}, nil
+		ipv4Providers: []remoteAddressProvider{
+			newRemoteIPv4AddressProvider("https://ipv4.yip.li"),
+			newRemoteIPv4AddressProvider("https://ipv4.icanhazip.com"),
+		},
+		ipv6Providers: []remoteAddressProvider{
+			newRemoteIPv6AddressProvider("https://ipv6.yip.li"),
+			newRemoteIPv6AddressProvider("https://ipv6.icanhazip.com"),
+		},
+	}
+
 }
 
 // RemoteIPProvider provides access to remote
 // IP addresses.
 type RemoteIPProvider struct {
-	ipv4Provider remoteAddressProvider
-	ipv6Provider remoteAddressProvider
+	ipv4Providers []remoteAddressProvider
+	ipv6Providers []remoteAddressProvider
 }
 
 // GetIPv6Addresses returns the remote IPv6 address.
 func (p RemoteIPProvider) GetIPv6Addresses() ([]net.IP, error) {
-	ip, err := p.ipv6Provider.GetRemoteIPAddress()
+
+	ip, err := requestRemoteIP(p.ipv6Providers)
 	if err != nil {
 		return []net.IP{}, err
 	}
@@ -59,7 +57,8 @@ func (p RemoteIPProvider) GetIPv6Addresses() ([]net.IP, error) {
 
 // GetIPv4Addresses returns the remote IPv4 address.
 func (p RemoteIPProvider) GetIPv4Addresses() ([]net.IP, error) {
-	ip, err := p.ipv4Provider.GetRemoteIPAddress()
+
+	ip, err := requestRemoteIP(p.ipv4Providers)
 	if err != nil {
 		return []net.IP{}, err
 	}
@@ -71,26 +70,63 @@ func (p RemoteIPProvider) GetIPv4Addresses() ([]net.IP, error) {
 	return []net.IP{ip}, nil
 }
 
+func requestRemoteIP(providers []remoteAddressProvider) (net.IP, error) {
+
+	if len(providers) == 0 {
+		return nil, fmt.Errorf("No providers given")
+	}
+
+	numberOfProviders := len(providers)
+
+	ips := make(chan net.IP, numberOfProviders)
+
+	for _, provider := range providers {
+
+		currentProvider := provider
+
+		go func() {
+
+			ip, _ := currentProvider.GetRemoteIPAddress()
+			ips <- ip
+
+		}()
+
+	}
+
+	for {
+		select {
+		case ip := <-ips:
+			{
+				if ip != nil {
+					return ip, nil
+				}
+			}
+		case <-time.After(time.Second * timeout):
+			return nil, fmt.Errorf("Timeout")
+		}
+	}
+}
+
 // newRemoteIPv4AddressProvider creates a new instance of the remoteAddressProvider type
 // with the given provider URL as the data source over IPv4.
-func newRemoteIPv4AddressProvider(providerURL string) (remoteAddressProvider, error) {
+func newRemoteIPv4AddressProvider(providerURL string) remoteAddressProvider {
 	return newRemoteAddressProvider("tcp4", providerURL)
 }
 
 // newRemoteIPv6AddressProvider creates a new instance of the remoteAddressProvider type
 // with the given provider URL as the data source over IPv4.
-func newRemoteIPv6AddressProvider(providerURL string) (remoteAddressProvider, error) {
+func newRemoteIPv6AddressProvider(providerURL string) remoteAddressProvider {
 	return newRemoteAddressProvider("tcp6", providerURL)
 }
 
 // newRemoteAddressProvider creates a new instance of the remoteAddressProvider type
 // with the given provider URL as the data source over the given network ("tcp", "tcp6", "tcp4")
-func newRemoteAddressProvider(network, providerURL string) (remoteAddressProvider, error) {
+func newRemoteAddressProvider(network, providerURL string) remoteAddressProvider {
 	return remoteAddressProvider{
 		network:     network,
 		providerURL: providerURL,
-		timeout:     time.Second * 10,
-	}, nil
+		timeout:     time.Second * timeout,
+	}
 }
 
 // remoteAddressProvider provides functions for accessing the IP addresses of network interfaces.
